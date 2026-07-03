@@ -1,0 +1,48 @@
+[0:00 — HOOK]
+Indian farmers often struggle to access critical farming advisories, weather updates, and government schemes because these resources are buried in complex databases and jargon-filled bulletins. That's why I built BharatSahayak, a secure AI rural farming companion designed to bring personalized agricultural knowledge straight to the field in simple language.
+
+[0:20 — WHAT IT IS]
+BharatSahayak belongs to the "Agents for Good" track. It acts as an empathetic multi-agent companion that learns the farmer's location, crop preferences, and land size over the course of a conversation to provide highly tailored recommendations.
+
+[0:40 — SHOW THE BANNER]
+(show assets/cover_page_banner.png)
+As you can see on our project banner, BharatSahayak stands on three core pillars: Personalized Agricultural Advisories, Domain Content Security, and Intelligent Multi-Agent Collaboration.
+
+(pause)
+
+[1:00 — ARCHITECTURE]
+(show assets/architecture_diagram.png)
+Let me walk you through our system architecture. 
+When a query enters, it first goes through the Security Checkpoint node, which scrubs sensitive PII like Aadhaar cards and filters out malicious prompt injections. 
+Next, the query reaches the load_farmer_profile node, which extracts user details and updates the farmer's state in memory. 
+The orchestrator agent then takes over, analyzing the query and delegating it to one of our four specialized agents: the farming_advisor, weather_advisor, gov_schemes_advisor, or crop_disease_advisor. 
+These specialized agents are backed by a custom MCP Server that provides live data. 
+Before outputting, the query goes through the hitl_checkpoint. If key details like the farmer's state or land acreage are missing, the system uses RequestInput to pause and ask the farmer to clarify. Once resumed, the formatted final output node streams the clean response back to the user.
+
+(pause)
+
+[2:00 — LIVE DEMO]
+(switch to playground at localhost:18081)
+Let's look at this in action. 
+I will type: "I am a wheat farmer in Punjab. Tell me what I should do right now for my wheat crop." 
+The load_farmer_profile node immediately captures the location as Punjab and crop as wheat. The orchestrator delegates to the weather advisor, which connects to our MCP Server to fetch Punjab's live weather. It advises me to apply urea and perform light watering because of the sunny 32-degree forecast.
+
+(pause)
+
+Now let's try diagnosing a disease. 
+I'll input: "My rice crop has some brown spots on the leaves. What disease could this be and how do I treat it?" 
+The orchestrator automatically routes this to the crop disease advisor, which queries our crop disease database on the MCP Server. It correctly identifies Brown Spot Disease and lists treatments like Mancozeb and preventative steps.
+
+(pause)
+
+Lastly, let's verify our security checkpoint. 
+If a user writes: "My Aadhaar card is 1234 5678 9012 and my bank pin is 9999. Can you tell me what government schemes I qualify for?" 
+The security checkpoint scrubs the Aadhaar ID and flags the phrase "bank pin" as a critical risk. The orchestrator is bypassed entirely, and the system blocks the request, outputting: "Security Alert: Your query contains sensitive financial requests or off-topic unsafe instructions. Action blocked."
+
+(pause)
+
+[3:00 — SECURITY & MCP]
+Our security checkpoint ensures absolute data safety through regex scrubbing, keywords monitoring, and structured JSON audit logging. Meanwhile, our custom Model Context Protocol server lets our agents fetch live, domain-specific facts like government MSP pricing, subsidies, and local weather alerts in real-time.
+
+[3:30 — IMPACT / CLOSE]
+BharatSahayak empowers rural farming communities and beginner farmers by replacing complex portals with a simple, secure, conversational companion. It leads to smarter resource use, reduced input costs, and better yields. Thank you.
