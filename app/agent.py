@@ -53,12 +53,15 @@ class WorkflowState(BaseModel):
 
 class OrchestratorOutput(BaseModel):
     response: str = Field(
+        default="",
         description="The final farming advice or the response compiled from the sub-agents."
     )
     needs_more_info: bool = Field(
+        default=False,
         description="True if we need to ask the farmer for missing profile details (e.g., location/state, crop type, or land size) to answer their query."
     )
     info_request_message: str = Field(
+        default="",
         description="The friendly question to ask the farmer if needs_more_info is True."
     )
 
@@ -70,10 +73,23 @@ farming_advisor = LlmAgent(
     name="farming_advisor",
     model=Gemini(model=config.model),
     instruction=(
-        "You are BharatSahayak's Farming Advisor. Your goal is to help Indian farmers with agricultural queries. "
-        "Use the calculate_farming_profitability tool to estimate and calculate farming costs and net profits when acreage is provided. "
-        "Provide crop suggestions, farming methods, advice on soil preparation, and guidance for beginners. "
-        "Translate agricultural knowledge into simple, easy-to-understand terms. Keep answers concise."
+        "You are BharatSahayak's Farming Advisor. Your goal is to help Indian farmers with agricultural queries.\n"
+        "Follow these rules when formulating your response:\n"
+        "1. Provide region (state/district) and season-specific crop recommendations.\n"
+        "2. When recommending a crop, you MUST mention the following 7 details in a concise, structured, and farmer-friendly format:\n"
+        "   - Why the crop was chosen (e.g., suitability to region, soil, or climate)\n"
+        "   - Investment per acre (estimated cultivation cost per acre)\n"
+        "   - Expected profit (net profit or expected profit range)\n"
+        "   - Difficulty level (e.g., Easy, Moderate, Hard)\n"
+        "   - Best sowing season\n"
+        "   - One government scheme that may help (e.g., PM-KISAN, PMFBY, Krishi Bhagya, etc. Search for schemes using search_government_schemes if needed)\n"
+        "   - Next practical steps (e.g., soil test, buying seeds, sowing)\n"
+        "3. Suggest crop varieties suitable for the region/season and identify selling opportunities (e.g., local mandis, e-NAM, processors).\n"
+        "4. If acreage/farm size is provided in the input or query, you MUST always call the `calculate_farming_profitability` tool to estimate and calculate farming costs and net profits.\n"
+        "5. If the user is new to farming or a beginner, provide beginner-friendly crop recommendations along with a step-by-step farming plan (soil preparation, sowing, irrigation, harvesting).\n"
+        "6. If the user asks about or refers to another state or location in their query, prioritize and answer for that location/state instead of assuming or requesting the saved profile location.\n"
+        "7. Respond in the same language as the user whenever possible (e.g., Hindi, Kannada, Telugu, etc.). When responding in Hindi or other languages, you MUST preserve all 7 required sections in the same order and translate their headings accurately (e.g., in Hindi: 1. यह फसल क्यों, 2. प्रति एकड़ निवेश, 3. अपेक्षित लाभ, 4. कठिनाई स्तर, 5. बुवाई का सबसे अच्छा मौसम, 6. सरकारी योजना, 7. अगले व्यावहारिक कदम). Do not omit or merge any section.\n"
+        "Keep answers simple, easy to understand, and concise."
     ),
     tools=[mcp_toolset]
 )
@@ -82,8 +98,10 @@ weather_advisor = LlmAgent(
     name="weather_advisor",
     model=Gemini(model=config.model),
     instruction=(
-        "You are BharatSahayak's Weather Advisor. Use the get_weather_advisory tool to fetch weather forecasts and tailored agricultural tips. "
-        "Give advice on irrigation schedules, rain warnings, and temperature effects on specific crops. "
+        "You are BharatSahayak's Weather Advisor. Follow these rules when formulating your response:\n"
+        "1. Always call the `get_weather_advisory` tool to fetch weather forecasts and tailored agricultural tips.\n"
+        "2. Your response must include specific irrigation advice, fertilizer advice (e.g., urea application timing), disease risk warnings (e.g., rust or blast), and clear next actions for the farmer.\n"
+        "3. Respond in the same language as the user (e.g., Hindi, Kannada, Telugu, etc.).\n"
         "Keep answers practical and focus on what actions the farmer should take."
     ),
     tools=[mcp_toolset]
@@ -93,8 +111,11 @@ gov_schemes_advisor = LlmAgent(
     name="gov_schemes_advisor",
     model=Gemini(model=config.model),
     instruction=(
-        "You are BharatSahayak's Government Schemes Advisor. Use the search_government_schemes tool to look up local/national agricultural programs and subsidies. "
-        "Help farmers discover central and state government schemes, subsidies, and eligibility rules. Detail document checklists and application guides in simple language."
+        "You are BharatSahayak's Government Schemes Advisor. Follow these rules when formulating your response:\n"
+        "1. Always use the `search_government_schemes` tool to look up local/national agricultural programs and subsidies.\n"
+        "2. For each relevant scheme, make sure to detail: eligibility criteria, required documents, benefits (subsidies/income support), and the step-by-step application process.\n"
+        "3. Respond in the same language as the user (e.g., Hindi, Kannada, Telugu, etc.).\n"
+        "Translate agricultural schemes into simple, easy-to-understand terms."
     ),
     tools=[mcp_toolset]
 )
@@ -103,8 +124,11 @@ crop_disease_advisor = LlmAgent(
     name="crop_disease_advisor",
     model=Gemini(model=config.model),
     instruction=(
-        "You are BharatSahayak's Crop Disease Advisor. Use the get_crop_disease_info tool to diagnose crop diseases and identify cures based on symptoms. "
-        "Identify crop diseases and suggest treatments. Provide preventative tips. Since the farmer might provide a crop name or symptom, explain issues in simple terms."
+        "You are BharatSahayak's Crop Disease Advisor. Follow these rules when formulating your response:\n"
+        "1. Always use the `get_crop_disease_info` tool to diagnose crop diseases and identify cures based on symptoms.\n"
+        "2. Your response must include: disease severity level, potential causes, treatment options (chemical and organic, if available), prevention tips, and a clear guideline on when they should contact a local agricultural expert.\n"
+        "3. Respond in the same language as the user (e.g., Hindi, Kannada, Telugu, etc.).\n"
+        "Explain symptoms and remedies in simple, jargon-free terms."
     ),
     tools=[mcp_toolset]
 )
@@ -118,10 +142,12 @@ orchestrator = LlmAgent(
     name="orchestrator",
     model=Gemini(model=config.model),
     instruction=(
-        "You are BharatSahayak's primary Orchestrator. "
-        "Your task is to analyze the user's input/query, check the farmer's profile, and delegate the query to the correct advisor using tools. "
-        "If you need missing information to answer the query (e.g. the farmer's state or farm size), set needs_more_info to True and write a helpful prompt in info_request_message. "
-        "Otherwise, use the appropriate sub-agent tool to get the answer, and then provide a comprehensive response."
+        "You are BharatSahayak's primary Orchestrator.\n"
+        "Your task is to analyze the user's input/query, check the farmer's profile, and delegate the query to the correct advisor using tools.\n"
+        "If you need missing information to answer the query (e.g. the farmer's state or farm size), set needs_more_info to True and write a helpful prompt in info_request_message.\n"
+        "However, if the user specifies or asks about another state or location in their query, prioritize that location for tool calling and response instead of asking for or assuming the saved profile location.\n"
+        "Ensure that both the final response and the info_request_message are in the same language as the user whenever possible (e.g., Hindi, Kannada, Telugu, etc.).\n"
+        "You MUST respond ONLY with a valid JSON object conforming to the OrchestratorOutput schema. Do not include any conversational preamble or wrap the JSON in markdown code blocks."
     ),
     tools=[
         AgentTool(farming_advisor),
@@ -238,6 +264,83 @@ def security_checkpoint(ctx: Context, node_input: types.Content) -> Event:
         
     return Event(output=node_input)
 
+def extract_location(text: str) -> str | None:
+    text_lower = text.lower()
+    state_mapping = {
+        "punjab": "Punjab",
+        "karnataka": "Karnataka",
+        "haryana": "Haryana",
+        "maharashtra": "Maharashtra",
+        "gujarat": "Gujarat",
+        "rajasthan": "Rajasthan",
+        "tamil nadu": "Tamil Nadu",
+        "andhra pradesh": "Andhra Pradesh",
+        "telangana": "Telangana",
+        "uttar pradesh": "Uttar Pradesh",
+        "madhya pradesh": "Madhya Pradesh",
+        "bihar": "Bihar",
+        "west bengal": "West Bengal",
+        "odisha": "Odisha",
+        "kerala": "Kerala",
+        "assam": "Assam",
+        "himachal pradesh": "Himachal Pradesh",
+        "uttarakhand": "Uttarakhand",
+        "chhattisgarh": "Chhattisgarh",
+        "jharkhand": "Jharkhand",
+        "bangalore": "Karnataka",
+        "bengaluru": "Karnataka",
+        "mumbai": "Maharashtra",
+        "pune": "Maharashtra",
+        "nagpur": "Maharashtra",
+        "hyderabad": "Telangana",
+        "chennai": "Tamil Nadu",
+        "jaipur": "Rajasthan",
+        "lucknow": "Uttar Pradesh",
+        "patna": "Bihar",
+        "kolkata": "West Bengal",
+        "bhopal": "Madhya Pradesh",
+        "ahmedabad": "Gujarat"
+    }
+    for key, val in state_mapping.items():
+        if key in text_lower:
+            return val
+            
+    words = text.strip().split()
+    words_lower = [w.lower() for w in words]
+    if len(words) <= 2 and not any(w in words_lower for w in ["i", "am", "in", "from", "live", "my", "is"]):
+        cleaned = "".join(c for c in text if c.isalnum() or c.isspace()).strip()
+        if cleaned:
+            return cleaned.title()
+            
+    import re
+    match = re.search(r"\b(?:in|from|at)\s+([A-Za-z]+)", text)
+    if match:
+        loc = match.group(1).strip()
+        if loc.lower() not in ["the", "my", "a", "an", "this", "some"]:
+            return loc.capitalize()
+    return None
+
+def extract_crops(text: str, current_crops: list[str]) -> list[str]:
+    text_lower = text.lower()
+    supported_crops = [
+        "wheat", "rice", "cotton", "potato", "tomato", "maize",
+        "sugarcane", "mustard", "onion", "soybean", "paddy", "vegetables"
+    ]
+    updated_crops = list(current_crops)
+    for crop in supported_crops:
+        if crop in text_lower:
+            if crop not in updated_crops:
+                updated_crops.append(crop)
+    return updated_crops
+
+def extract_farm_size(text: str) -> str | None:
+    import re
+    text_lower = text.lower()
+    match = re.search(r"(\d+(?:\.\d+)?)\s*acres?", text_lower)
+    if match:
+        return f"{match.group(1)} acres"
+    return None
+
 def load_farmer_profile(ctx: Context, node_input: types.Content) -> Event:
     """Loads and updates the farmer profile based on conversation input."""
     text_query = ""
@@ -255,31 +358,16 @@ def load_farmer_profile(ctx: Context, node_input: types.Content) -> Event:
         }
     
     profile = ctx.state["farmer_profile"]
-    q_lower = text_query.lower()
     
-    # Basic rule-based memory updates
-    if "punjab" in q_lower:
-        profile["location"] = "Punjab"
-    elif "karnataka" in q_lower:
-        profile["location"] = "Karnataka"
-    elif "haryana" in q_lower:
-        profile["location"] = "Haryana"
+    loc = extract_location(text_query)
+    if loc:
+        profile["location"] = loc
         
-    if "wheat" in q_lower:
-        if "wheat" not in profile["crops"]:
-            profile["crops"].append("wheat")
-    if "rice" in q_lower:
-        if "rice" not in profile["crops"]:
-            profile["crops"].append("rice")
-    if "cotton" in q_lower:
-        if "cotton" not in profile["crops"]:
-            profile["crops"].append("cotton")
-            
-    if "acre" in q_lower:
-        import re
-        match = re.search(r"(\d+)\s*acres?", q_lower)
-        if match:
-            profile["farm_size"] = f"{match.group(1)} acres"
+    profile["crops"] = extract_crops(text_query, profile["crops"])
+    
+    sz = extract_farm_size(text_query)
+    if sz:
+        profile["farm_size"] = sz
             
     orchestrator_prompt = (
         f"Farmer Profile:\n"
@@ -303,25 +391,22 @@ async def hitl_checkpoint(ctx: Context, node_input: dict) -> Event | AsyncGenera
             yield RequestInput(interrupt_id="more_info", message=info_request_message)
             return
         
-        user_answer = ctx.resume_inputs["more_info"]
+        user_answer = ctx.resume_inputs.pop("more_info")
         original_query = ctx.state.get("user_query", "")
         updated_query = f"{original_query} (Additional farmer response: {user_answer})"
         ctx.state["user_query"] = updated_query
         
         profile = ctx.state.get("farmer_profile", {})
-        ua_lower = user_answer.lower()
         
-        if "punjab" in ua_lower:
-            profile["location"] = "Punjab"
-        elif "karnataka" in ua_lower:
-            profile["location"] = "Karnataka"
-        elif "haryana" in ua_lower:
-            profile["location"] = "Haryana"
+        loc = extract_location(user_answer)
+        if loc:
+            profile["location"] = loc
             
-        import re
-        match = re.search(r"(\d+)\s*acres?", ua_lower)
-        if match:
-            profile["farm_size"] = f"{match.group(1)} acres"
+        profile["crops"] = extract_crops(user_answer, profile.get("crops", []))
+        
+        sz = extract_farm_size(user_answer)
+        if sz:
+            profile["farm_size"] = sz
             
         orchestrator_prompt = (
             f"Farmer Profile:\n"
