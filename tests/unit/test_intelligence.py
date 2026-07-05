@@ -57,9 +57,9 @@ async def test_hitl_checkpoint_consumption() -> None:
     
     node_input = {"needs_more_info": True, "info_request_message": "Please specify", "response": ""}
     
-    from app.agent import hitl_checkpoint
+    from app.agent import _hitl_checkpoint_impl
     events = []
-    async for event in hitl_checkpoint(ctx, node_input):
+    async for event in _hitl_checkpoint_impl(ctx, node_input):
         events.append(event)
         
     assert len(events) == 1
@@ -72,4 +72,104 @@ async def test_hitl_checkpoint_consumption() -> None:
     
     # Verify that the input has been popped to prevent loops
     assert "more_info" not in ctx.resume_inputs
+
+
+@pytest.mark.asyncio
+async def test_hitl_checkpoint_intercepts_missing_season() -> None:
+    """Test that hitl_checkpoint intercepts queries missing a season."""
+    ctx = MockContext()
+    ctx.state["user_query"] = "I have 2 acres in Uttar Pradesh and want to start farming."
+    ctx.state["farmer_profile"] = {"crops": [], "location": "Uttar Pradesh", "farm_size": "2 acres"}
+    ctx.resume_inputs = {}
+    
+    node_input = {
+        "needs_more_info": False,
+        "info_request_message": "",
+        "response": "🌱 Recommended Crop: Wheat ..."
+    }
+    
+    from app.agent import _hitl_checkpoint_impl
+    from google.adk.events.request_input import RequestInput
+    
+    events = []
+    async for event in _hitl_checkpoint_impl(ctx, node_input):
+        events.append(event)
+        
+    assert len(events) == 1
+    assert isinstance(events[0], RequestInput)
+    assert events[0].interrupt_id == "more_info"
+    assert events[0].message == "To recommend the best crop, please tell me which season you are planning to farm in: Kharif, Rabi, or Zaid."
+
+
+@pytest.mark.asyncio
+async def test_hitl_checkpoint_multilingual_season_clarification_hindi() -> None:
+    """Test that hitl_checkpoint uses Hindi clarification prompt for Hindi queries."""
+    ctx = MockContext()
+    ctx.state["user_query"] = "मेरे पास उत्तर प्रदेश में 2 एकड़ जमीन है और मैं खेती शुरू करना चाहता हूं।"
+    ctx.state["farmer_profile"] = {"crops": [], "location": "Uttar Pradesh", "farm_size": "2 acres", "language": "English"}
+    ctx.resume_inputs = {}
+    
+    node_input = {
+        "needs_more_info": False,
+        "info_request_message": "",
+        "response": "अनुशंसित फसल..."
+    }
+    
+    from app.agent import _hitl_checkpoint_impl
+    from google.adk.events.request_input import RequestInput
+    
+    events = []
+    async for event in _hitl_checkpoint_impl(ctx, node_input):
+        events.append(event)
+        
+    assert len(events) == 1
+    assert isinstance(events[0], RequestInput)
+    assert events[0].interrupt_id == "more_info"
+    assert "🌾 सर्वोत्तम फसल की सिफारिश करने के लिए कृपया बताइए कि आप किस मौसम में खेती करना चाहते हैं" in events[0].message
+    assert "• खरीफ" in events[0].message
+    assert "• रबी" in events[0].message
+    assert "• ज़ायद" in events[0].message
+
+
+@pytest.mark.asyncio
+async def test_hitl_checkpoint_season_only_reply_preserves_location() -> None:
+    """Test that a season-only reply updates season but does not overwrite location."""
+    ctx = MockContext()
+    ctx.state["user_query"] = "I need crop recommendations"
+    ctx.state["farmer_profile"] = {
+        "crops": [],
+        "location": "Uttar Pradesh",
+        "farm_size": "2 acres",
+        "language": "English",
+        "season": None
+    }
+    ctx.resume_inputs = {"more_info": "Kharif"}
+    
+    node_input = {
+        "needs_more_info": True,
+        "info_request_message": "Please specify season",
+        "response": ""
+    }
+    
+    from app.agent import _hitl_checkpoint_impl
+    events = []
+    async for event in _hitl_checkpoint_impl(ctx, node_input):
+        events.append(event)
+        
+    assert len(events) == 1
+    profile = ctx.state["farmer_profile"]
+    assert profile["location"] == "Uttar Pradesh"
+    assert profile["season"] == "Kharif"
+
+
+def test_orchestrator_output_validation_dict() -> None:
+    """Test that OrchestratorOutput's custom response field_validator correctly formats dictionary responses."""
+    data = {
+        "response": {"request": "मैं उत्तर प्रदेश में नया किसान हूँ। मुझे कौन सी फसल उगानी चाहिए?"},
+        "needs_more_info": False,
+        "info_request_message": ""
+    }
+    output = OrchestratorOutput.model_validate(data)
+    assert output.response == "मैं उत्तर प्रदेश में नया किसान हूँ। मुझे कौन सी फसल उगानी चाहिए?"
+
 
