@@ -1,152 +1,240 @@
-# BharatSahayak — AI Rural Farming Companion
+# 🌾 BharatSahayak — AI Rural Farming Companion
 
-Personalized multi-agent companion for Indian farmers providing crop advice, weather alerts, government scheme guidance, and disease diagnosis in local languages.
+> **Empowering Indian Farmers with Personalized Multi-Agent Agricultural Intel, Language Inclusivity, and Safety-First Guardrails.**
 
-## Prerequisites
+---
 
-*   **Python:** 3.11 – 3.13 (recommended 3.13)
-*   **uv:** Fast Python package installer and manager
-*   **Gemini API Key:** Obtain your key from [Google AI Studio](https://aistudio.google.com/apikey)
+[![Kaggle Hackathon](https://img.shields.io/badge/Kaggle-Hackathon-blue?style=for-the-badge&logo=kaggle)](https://www.kaggle.com/)
+[![Gemini 2.5 Flash](https://img.shields.io/badge/Model-Gemini%202.5%20Flash-orange?style=for-the-badge&logo=googlegemini)](https://deepmind.google/technologies/gemini/)
+[![ADK 2.0](https://img.shields.io/badge/Framework-ADK%202.0-green?style=for-the-badge)](https://google.github.io/adk-docs/)
 
-## Quick Start
+---
 
-1.  **Clone the repository:**
-    ```bash
-    git clone <repo-url>
-    cd bharatsahayak
-    ```
+## 📖 Project Overview
 
-2.  **Configure environment:**
-    Copy the sample environment file and add your API key:
-    ```bash
-    cp .env.example .env
-    ```
-    *Ensure `.env` contains your `GOOGLE_API_KEY`, `GOOGLE_GENAI_USE_VERTEXAI=False`, and `GEMINI_MODEL=gemini-2.5-flash`.*
+**BharatSahayak** is an AI-powered multilingual farming assistant designed to provide personalized agricultural advisory services to Indian farmers. Built on **Google's ADK 2.0 (Agent Development Kit)** and powered by **Gemini 2.5 Flash**, BharatSahayak bridges the gap between scientific agricultural research and ground-level farming operations. By acting as a multilingual, safety-conscious companion, it delivers region-specific crop recommendations, real-time weather advisories, governmental subsidy guidance, and crop disease diagnosis.
 
-3.  **Install dependencies:**
-    ```bash
-    make install
-    ```
+---
 
-4.  **Launch the Playground:**
-    ```bash
-    make playground
-    ```
-    Opens the interactive developer UI at [http://localhost:18081](http://localhost:18081).
+## 🚨 Problem Statement
 
-## Architecture
+Indian agriculture is highly fragmented, with over **140 million smallholder farmers** facing multiple critical challenges:
+1. **Information Asymmetry:** Farmers lack access to timely, localized, and actionable scientific recommendations.
+2. **Language Barriers:** Most agricultural portals and scientific materials are in English, whereas rural communities communicate in regional languages like Hindi, Kannada, Telugu, and more.
+3. **Complex Policy Landscapes:** Discovering and applying for relevant government schemes and subsidies involves navigating complex eligibility rules.
+4. **Immediate Disease Diagnosis:** Crop diseases spread rapidly, and delays in identifying pests/infections lead to severe crop losses.
+5. **PII and Financial Exploitation:** Rural internet users are highly vulnerable to phishing, data leaks, and social engineering.
 
-The system utilizes the ADK 2.0 Workflow runtime engine to orchestrate a multi-agent system securely.
+---
 
+## 💡 The Solution
+
+**BharatSahayak** addresses these pain points by offering an intuitive, conversational interface that:
+*   **Maintains Stored Profiles:** Remembers the farmer's state, farm size, crops grown, and language preferences across turns.
+*   **Communicates Multilingually:** Translates explanations, emojis, and layouts dynamically.
+*   **Orchestrates Specialized Advice:** Uses a multi-agent system where each agent is an expert in a specific domain.
+*   **Ensures Ironclad Safety:** Intercepts PII (like Aadhaar numbers) and blocks off-topic or sensitive queries (like bank PIN requests) at the runtime level.
+*   **Implements Human-in-the-Loop Clarification:** Resolves ambiguities (like missing farming seasons) by pausing execution, requesting info in the farmer's language, and resuming smoothly.
+
+---
+
+## 🚀 Key Features
+
+*   **Multi-Agent Coordination:** Orchestrates delegation between specialized sub-agents.
+*   **Dynamic Language Preference:** Dynamically switches languages (e.g. English ⇄ Hindi) based on the latest query, preventing language persistence.
+*   **Rule-Based & Generative Extraction:** Combines Python-level regex/word mappings (supporting Hindi Devanagari and English) with LLM intelligence to build and maintain the farmer's profile.
+*   **Model Context Protocol (MCP) Server Integration:** Integrates LLM agents with local Python tools and live data sources.
+*   **Interactive Resumability:** Uses ADK 2.0's resumption flow to pause the graph for user clarification and resume statefully.
+
+---
+
+## 🏗 Multi-Agent Architecture
+
+BharatSahayak is structured as a directed workflow graph managed by the ADK runtime engine.
+
+### Workflow Graph
 ```mermaid
 graph TD
     START[User Input] --> SecCheck[Security Checkpoint]
-    SecCheck -- Unsafe/Breach --> Final[format_final_output]
-    SecCheck -- Safe --> LoadProfile[load_farmer_profile]
+    SecCheck -- Breach Blocked --> FinalOut[format_final_output]
+    SecCheck -- Safe Query --> LoadProfile[load_farmer_profile]
+    
     LoadProfile --> Orch[Orchestrator Agent]
     
     Orch --> Tool_Weather[weather_advisor]
     Orch --> Tool_Disease[crop_disease_advisor]
     Orch --> Tool_Gov[gov_schemes_advisor]
     Orch --> Tool_Farming[farming_advisor]
-
-    Tool_Weather -.-> MCPServer[MCP Server]
+    
+    Tool_Weather -.-> MCPServer[MCP Server Tools]
     Tool_Disease -.-> MCPServer
     Tool_Gov -.-> MCPServer
     Tool_Farming -.-> MCPServer
-
+    
     Tool_Weather --> HITL[hitl_checkpoint]
     Tool_Disease --> HITL
     Tool_Gov --> HITL
     Tool_Farming --> HITL
-
-    HITL -- Missing State/Acreage --> RequestMore[RequestInput Pause]
-    RequestMore --> Orch
-    HITL -- Complete --> Final
-    Final --> UI[User Interface]
+    
+    HITL -- Missing Season (Clarify) --> Pause[RequestInput Pause]
+    Pause --> Orch
+    HITL -- Season Provided / Complete --> FinalOut
+    
+    FinalOut --> UI[User Interface]
 ```
 
-## How to Run
+### Specialized Agents
+1.  **Orchestrator Agent:** The central routing hub that analyzes user queries, reads the profile, calls appropriate tool advisors, and enforces language constraints.
+2.  **Farming Advisor:** Recommends region-specific crops, estimates investment cost/net profits per acre, and lists practical next steps.
+3.  **Weather Advisor:** Pulls live weather forecasts and translates meteorological data into actionable advice (e.g., watering schedules or fertilizer timing).
+4.  **Government Schemes Advisor:** Matches eligibility parameters to local/national agricultural programs and subsidies.
+5.  **Crop Disease Advisor:** Diagnoses fungal/bacterial infections from descriptions and details chemical/organic remedies.
 
-*   **Playground Mode (Local UI):**
+---
+
+## 🔌 MCP Server Tools
+
+Agents call tools hosted on a local **Model Context Protocol (MCP) Server** running over standard input/output (`stdio`):
+*   `calculate_farming_profitability(location, crops, farm_size_acres)`: Performs calculations for estimated crop yield, investment, and net profit.
+*   `get_weather_advisory(location)`: Fetches current temperature, forecast conditions, and crop-specific alerts.
+*   `search_government_schemes(location, crops)`: Performs indexed lookup for national (PM-KISAN, PMFBY) and state-specific agricultural schemes.
+*   `get_crop_disease_info(symptoms)`: Queries a disease knowledge database for severity, causes, organic treatments, and chemical remedies.
+
+---
+
+## 🔒 Security Features
+
+BharatSahayak implements a strict **Security Checkpoint** node at the very beginning of the workflow:
+*   **PII Scrubbing:** Automatically scrubs Aadhaar numbers, mobile numbers, and emails using regular expressions, replacing them with redaction tags (e.g. `[AADHAAR_REDACTED]`).
+*   **Safety Blocking:** Blocks sensitive inputs (such as bank PINs, passwords, or credentials) and off-topic instructions, returning a user-friendly guardrail message.
+*   **Audit Logging:** Logs safety triggers and metadata to `sys.stderr` for system administrators.
+
+---
+
+## 👥 Human-in-the-Loop (HITL) Behavior
+
+If a user requests crop recommendations but has not specified a farming season (**Kharif**, **Rabi**, or **Zaid**):
+1.  The workflow intercepts the query at `hitl_checkpoint`.
+2.  It halts execution and yields a `RequestInput` containing a clarification prompt in the user's detected language.
+    *   **Hindi example:**
+        > 🌾 सर्वोत्तम फसल की सिफारिश करने के लिए कृपया बताइए कि आप किस मौसम में खेती करना चाहते हैं:
+        > • खरीफ
+        > • रबी
+        > • ज़ायद
+3.  Once the user responds (e.g., `"Kharif"`), the ADK engine statefully resumes the graph from where it paused.
+4.  The system stores the season in `profile.season` and proceeds to generate the tailored recommendation without overwriting other stored profile parameters like the farmer's location.
+
+---
+
+## 📚 Course Concepts Demonstrated
+
+BharatSahayak was developed by applying several concepts covered in the Google & Kaggle Vibe Coding Agents course.
+
+| Course Concept | Implementation in BharatSahayak |
+|----------------|---------------------------------|
+| Agent / Multi-Agent System (ADK) | Implements an orchestrated multi-agent architecture consisting of an Orchestrator Agent and specialized Farming, Weather, Government Schemes, and Crop Disease advisors. |
+| Model Context Protocol (MCP) Server | Uses a local MCP Server to expose agricultural tools for profitability estimation, weather advisories, government scheme retrieval, and crop disease information. |
+| Antigravity IDE | Utilized for project scaffolding, iterative development, testing, and rapid prototyping of agent workflows. |
+| Security Features | Implements privacy and safety guardrails including PII redaction, prompt injection detection, credential blocking, and audit logging. |
+| Human-in-the-Loop (HITL) | Requests missing information (such as farming season) and resumes execution statefully. |
+| Agent Skills & Tool Usage | Demonstrates workflow orchestration, session management, custom tool integration, and agent-to-tool interactions using ADK and Agents CLI. |
+| Deployability & Reproducibility | Provides documented local setup instructions and reproducible execution using the ADK Playground and standard Python tooling. |
+
+## 🛠 Technologies Used
+
+*   **Runtime Framework:** [Google ADK (Agent Development Kit) 2.0](https://google.github.io/adk-docs/)
+*   **LLM Model:** Gemini 2.5 Flash (`gemini-2.5-flash`)
+*   **Language:** Python 3.13
+*   **Data Validation:** Pydantic v2
+*   **Environment & Package Manager:** `uv`
+*   **Web Host / Playground:** FastAPI / Uvicorn / ADK Dev Tools Server
+
+---
+
+## 💻 Installation Instructions
+
+### Prerequisites
+*   Python 3.11 – 3.13 (recommended 3.13)
+*   `uv` package manager (install via `pip install uv` or `curl -sSf https://rye.astral.sh/get | sh`)
+*   A Gemini API Key (get one from [Google AI Studio](https://aistudio.google.com/apikey))
+
+### Steps
+1.  **Clone the repository:**
     ```bash
-    make playground
+    git clone https://github.com/Kushagra-Dixit-0906/bharatsahayak.git
+    cd bharatsahayak
     ```
-    Launches uvicorn server in the background and opens the interactive ADK chat interface.
-*   **Production API Server Mode:**
+2.  **Set up environment variables:**
+    Copy the example configuration file:
     ```bash
-    make run
+    cp .env.example .env
     ```
-    Runs the production web app server on port 8080.
+    Edit `.env` and fill in your Gemini API key:
+    ```env
+    GOOGLE_API_KEY=AIzaSyYourGeminiApiKeyHere
+    GOOGLE_GENAI_USE_VERTEXAI=False
+    GEMINI_MODEL=gemini-2.5-flash
+    ```
+3.  **Install dependencies:**
+    ```bash
+    uv pip install -e .
+    ```
 
-## Sample Test Cases
+---
 
-### Test Case 1: Weather & Crop Cultivation Advice
-*   **Input:** `"I am a wheat farmer in Punjab. Tell me what I should do right now for my wheat crop."`
-*   **Expected Path:** `START` ➔ `security_checkpoint` ➔ `load_farmer_profile` (sets profile: location="Punjab", crop="wheat") ➔ `orchestrator` ➔ `weather_advisor` (calls `get_weather_advisory` on MCP Server) ➔ `hitl_checkpoint` ➔ `format_final_output`.
-*   **Check:** The UI displays current Punjab weather details (32°C, sunny, no rain) and agricultural advice (apply urea, light watering).
+## 🏃 Running Locally
 
-### Test Case 2: Fungal Crop Disease Diagnosis
-*   **Input:** `"My rice crop has some brown spots on the leaves. What disease could this be and how do I treat it?"`
-*   **Expected Path:** `START` ➔ `security_checkpoint` ➔ `load_farmer_profile` ➔ `orchestrator` ➔ `crop_disease_advisor` (calls `get_crop_disease_info` on MCP Server) ➔ `hitl_checkpoint` ➔ `format_final_output`.
-*   **Check:** The UI shows a diagnosis for **Brown Spot Disease (Fungal)** and lists treatments (Mancozeb/Carbendazim) and preventative actions.
+To launch the interactive **ADK Playground** developer UI (which serves a chat interface and displays real-time execution traces of the workflow graph):
 
-### Test Case 3: Security Redaction & Financial Safety Block
-*   **Input:** `"My Aadhaar card number is 1234 5678 9012 and my bank pin is 9999. Can you tell me what government schemes I qualify for?"`
-*   **Expected Path:** `START` ➔ `security_checkpoint` (detects Aadhaar, scrubs it; detects `bank pin`, blocks request) ➔ `format_final_output` (routes to `security_breach`).
-*   **Check:** The UI blocks execution and displays: *"Security Alert: Your query contains sensitive financial requests or off-topic unsafe instructions. Action blocked."* An audit log entry is written to stderr.
+```bash
+uv run adk web app --host 127.0.0.1 --port 18081 --reload_agents
+```
 
-## Troubleshooting
+Open your browser and navigate to:
+👉 **[http://127.0.0.1:18081](http://127.0.0.1:18081)**
 
-1.  **ValidationError on Startup:**
-    *   *Cause:* Duplicate edges or invalid edge structure in `app/agent.py`.
-    *   *Fix:* Ensure conditional paths use a dictionary `RoutingMap` format instead of a 3-tuple `(source, target, route)`.
-2.  **Model API 404 Error:**
-    *   *Cause:* Using a retired Gemini model name (like `gemini-1.5-*`).
-    *   *Fix:* Verify that `GEMINI_MODEL=gemini-2.5-flash` or `gemini-2.5-flash-lite` is set in your `.env` file.
-3.  **Windows Code Edits Not Loaded:**
-    *   *Cause:* Windows file locking disables active watcher hot-reloads during active tool execution.
-    *   *Fix:* Stop the running server processes on ports 18081 and 8090, then start a fresh playground session:
-        ```powershell
-        Get-Process -Id (Get-NetTCPConnection -LocalPort 18081, 8090 -ErrorAction SilentlyContinue).OwningProcess | Stop-Process -Force
-        make playground
-        ```
+---
 
-## Push to GitHub
+## 📂 Project Structure
 
-1. Create a new repo at https://github.com/new
-   - Name: bharatsahayak
-   - Visibility: Public or Private
-   - Do NOT initialize with README (you already have one)
+```
+bharatsahayak/
+├── app/
+│   ├── __init__.py
+│   ├── agent.py            # Workflow definitions, LLM agents, and HITL nodes
+│   ├── config.py           # Configuration loader
+│   ├── mcp_server.py       # Local MCP Server containing agricultural tools
+│   └── main.py             # App entry point
+├── tests/
+│   ├── unit/               # Schema validation, regex, and extraction unit tests
+│   └── integration/        # Turn-by-turn workflow integration tests
+├── assets/                 # Graphics, architecture diagrams, and screenshots
+├── .env.example            # Sample configuration file
+├── pyproject.toml          # Build configuration and dependency metadata
+├── README.md               # Hackathon documentation
+└── DEMO_SCRIPT.txt         # Voice presentation script
+```
 
-2. In your terminal, navigate into your project folder:
-   cd bharatsahayak
-   git init
-   git add .
-   git commit -m "Initial commit: bharatsahayak ADK agent"
-   git branch -M main
-   git remote add origin https://github.com/<your-username>/bharatsahayak.git
-   git push -u origin main
+---
 
-3. Verify .gitignore includes:
-   .env          ← your API key — must NEVER be pushed
-   .venv/
-   __pycache__/
-   *.pyc
-   .adk/
+## 🖼 Screenshots
 
-⚠ NEVER push .env to GitHub. Your API key will be exposed publicly.
+### Multilingual Crop Recommendations
+*(Insert a screenshot here showing Hindi crop recommendations and profile state update updates)*
 
-## Assets
+### Human-in-the-Loop Clarification Prompt
+*(Insert a screenshot here demonstrating the system halting execution and prompting for the season)*
 
-### Cover Page Banner
-![Cover Page Banner](assets/cover_page_banner.png)
+---
 
-### Architecture Workflow Diagram
-![Architecture Workflow Diagram](assets/architecture_diagram.png)
+## 🎥 Demo Video
 
-## Demo Script
+🎥 **[Watch the BharatSahayak Pitch and Demo on YouTube](https://youtube.com)** *(Placeholder)*
 
-The spoken presentation script for this project can be found in [DEMO_SCRIPT.txt](DEMO_SCRIPT.txt).
+---
 
+## 🔮 Future Improvements
 
+1.  **Multimodal Pest Diagnosis:** Allow farmers to upload photos of infected crop leaves for the Crop Disease Advisor to diagnose directly via computer vision.
+2.  **Voice Interaction (Speech-to-Text & Text-to-Speech):** Integrate regional voice engines (supporting Hindi, Kannada, Telugu speech) to make the assistant accessible to illiterate or elderly farmers.
+3.  **Offline Edge Syncing:** Implement localized database syncing to allow basic query routing and cached weather forecasting when network connectivity in remote fields is unstable.
