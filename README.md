@@ -229,7 +229,7 @@ bharatsahayak/
 
 ## 🎥 Demo Video
 
-🎥 **[Watch the BharatSahayak Pitch and Demo on YouTube](https://youtube.com)** *(Placeholder)*
+🎥 **[Watch the BharatSahayak Pitch and Demo on YouTube](https://youtu.be/uLZ2N7wl5yI?si=8I_e4h2HMMKCeBNV)** *(Placeholder)*
 
 ---
 
