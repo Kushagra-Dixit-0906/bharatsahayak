@@ -14,6 +14,12 @@
 
 **BharatSahayak** is an AI-powered multilingual farming assistant designed to provide personalized agricultural advisory services to Indian farmers. Built on **Google's ADK 2.0 (Agent Development Kit)** and powered by **Gemini 2.5 Flash**, BharatSahayak bridges the gap between scientific agricultural research and ground-level farming operations. By acting as a multilingual, safety-conscious companion, it delivers region-specific crop recommendations, real-time weather advisories, governmental subsidy guidance, and crop disease diagnosis.
 
+## 🎯 Hackathon Track
+
+**Track:** Agents for Good
+
+BharatSahayak was developed for the Google × Kaggle **AI Agents: Intensive Vibe Coding** Capstone Project under the **Agents for Good** track. The project aims to improve access to personalized agricultural knowledge, multilingual assistance, and safe AI interactions for Indian farmers.
+
 ---
 
 ## 🚨 Problem Statement
@@ -197,39 +203,127 @@ Open your browser and navigate to:
 
 ## 📂 Project Structure
 
-```
+```text
 bharatsahayak/
 ├── app/
 │   ├── __init__.py
-│   ├── agent.py            # Workflow definitions, LLM agents, and HITL nodes
-│   ├── config.py           # Configuration loader
-│   ├── mcp_server.py       # Local MCP Server containing agricultural tools
-│   └── main.py             # App entry point
+│   ├── agent.py                 # Multi-agent workflow, orchestration, memory & HITL logic
+│   ├── config.py                # Configuration and environment settings
+│   ├── mcp_server.py            # MCP Server exposing agricultural tools
+│   └── main.py                  # Application entry point
+│
 ├── tests/
-│   ├── unit/               # Schema validation, regex, and extraction unit tests
-│   └── integration/        # Turn-by-turn workflow integration tests
-├── assets/                 # Graphics, architecture diagrams, and screenshots
-├── .env.example            # Sample configuration file
-├── pyproject.toml          # Build configuration and dependency metadata
-├── README.md               # Hackathon documentation
-└── DEMO_SCRIPT.txt         # Voice presentation script
+│   ├── unit/                    # Unit tests
+│   └── integration/             # Integration and workflow tests
+│
+├── assets/                      # Banner, architecture diagrams and project graphics
+│
+├── Screenshots/                 # Demo screenshots used in the documentation
+│
+├── .env.example                 # Sample environment configuration
+├── pyproject.toml               # Project dependencies and build configuration
+├── README.md                    # Project documentation
+└── DEMO_SCRIPT.txt              # Demo presentation script
 ```
+## 🖼 Screenshots
+
+### 👋 Welcome Screen
+
+![Welcome](Screenshots/01_welcome.png)
+
+*The application welcomes farmers and introduces the available AI-powered agricultural services.*
 
 ---
 
-## 🖼 Screenshots
+### 🧠 Farmer Profile Memory
 
-### Multilingual Crop Recommendations
-*(Insert a screenshot here showing Hindi crop recommendations and profile state update updates)*
+![Memory](Screenshots/02_memory_profile.png)
 
-### Human-in-the-Loop Clarification Prompt
-*(Insert a screenshot here demonstrating the system halting execution and prompting for the season)*
+*BharatSahayak automatically extracts and remembers farmer information such as location, crop, language, and farm details throughout the conversation.*
+
+---
+
+### 💰 Profitability Advisor with Human-in-the-Loop
+
+**Step 1 – Farmer asks how to increase profit**
+
+![Profitability Query](Screenshots/03_profitability%201.png)
+
+*The farmer asks for profitability advice. The orchestrator analyzes the request and determines that additional information is required.*
+
+**Step 2 – Human-in-the-Loop Clarification**
+
+![Profitability HITL](Screenshots/03_profitability_hitl.PNG)
+
+*Execution pauses and BharatSahayak requests the missing farming information before continuing.*
+
+**Step 3 – Personalized Recommendation**
+
+![Profitability Result](Screenshots/03_profitability%202%20hitl%20response.PNG)
+
+*After receiving the required information, the workflow resumes and provides personalized profitability recommendations.*
+
+---
+
+### 🌿 Crop Disease Diagnosis
+
+**Diagnosis**
+
+![Disease Part 1](Screenshots/04_Disease_Advisor.PNG)
+
+*The Crop Disease Advisor identifies the disease using the specialized agricultural agent.*
+
+**Treatment Recommendation**
+
+![Disease Part 2](Screenshots/04_Disease_Advisor%202.PNG)
+
+*The system recommends treatments, preventive measures, and next steps for the farmer.*
+
+---
+
+### 🏛 Government Scheme Advisor
+
+**Eligible Schemes**
+
+![Government Schemes](Screenshots/05_government_schemes.png)
+
+*BharatSahayak recommends relevant government schemes based on the farmer's profile.*
+
+**Detailed Benefits**
+
+![Government Scheme Details](Screenshots/05_government_schemes%201.PNG)
+
+*The agent explains eligibility, benefits, and application guidance to help farmers access government support.*
+
+---
+
+### 🔒 Security Checkpoint
+
+![Security](Screenshots/06_Security.PNG)
+
+*Sensitive information such as Aadhaar numbers and unsafe requests are detected and blocked before reaching the agent workflow.*
+
+---
+
+### 🌦 Weather Advisory
+
+![Weather](Screenshots/07_Weather.PNG)
+
+*The Weather Advisor provides localized farming recommendations using weather information through the MCP Server.*
+
+---
+
+### 🌐 Multilingual (Hindi) Support
+
+![Hindi Support](Screenshots/08_Hindi.PNG)
+
+*BharatSahayak supports multilingual conversations and Human-in-the-Loop interactions in Hindi, making the platform accessible to more farmers.*
 
 ---
 
 ## 🎥 Demo Video
 
-🎥 **[Watch the BharatSahayak Pitch and Demo on YouTube](https://youtu.be/uLZ2N7wl5yI?si=8I_e4h2HMMKCeBNV)** *(Placeholder)*
+🎥 **[Watch the BharatSahayak Pitch and Demo on YouTube](https://youtu.be/uLZ2N7wl5yI?si=8I_e4h2HMMKCeBNV)**
 
 ---
 
